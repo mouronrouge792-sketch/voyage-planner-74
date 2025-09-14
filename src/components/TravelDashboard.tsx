@@ -5,11 +5,31 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TravelRequestForm, TravelRequest } from "./TravelRequestForm";
-import { Plus, Calendar, MapPin, Clock, MessageCircle, Edit, Trash2, Send, Users, Paperclip, CheckCircle } from "lucide-react";
+import { Plus, Calendar, MapPin, Clock, MessageCircle, Edit, Trash2, Send, Users, Paperclip, CheckCircle, User, Laptop } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+
+// Types for travelers and digital assets
+interface Traveler {
+  id: string;
+  name: string;
+  role: string;
+  avatar?: string;
+  status: 'confirmed' | 'pending' | 'declined';
+}
+
+interface DigitalAsset {
+  id: string;
+  type: 'laptop' | 'tablet' | 'phone';
+  model: string;
+  serialNumber: string;
+  assignedTo: string;
+  status: 'assigned' | 'available' | 'maintenance';
+}
 
 export function TravelDashboard() {
   const { toast } = useToast();
@@ -17,6 +37,22 @@ export function TravelDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<TravelRequest | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  
+  // Mock data for travelers and digital assets
+  const [travelers] = useState<Record<string, Traveler[]>>({
+    "1": [
+      { id: "t1", name: "Marie Dubois", role: "Chef de projet", status: "confirmed" },
+      { id: "t2", name: "Pierre Martin", role: "Développeur", status: "confirmed" },
+      { id: "t3", name: "Sophie Rousseau", role: "Designer", status: "pending" }
+    ]
+  });
+  
+  const [digitalAssets] = useState<Record<string, DigitalAsset[]>>({
+    "1": [
+      { id: "d1", type: "laptop", model: "MacBook Pro 16\"", serialNumber: "MBP2023001", assignedTo: "Marie Dubois", status: "assigned" },
+      { id: "d2", type: "laptop", model: "ThinkPad X1", serialNumber: "TP2023002", assignedTo: "Pierre Martin", status: "assigned" }
+    ]
+  });
 
   // Simulated data - in real app this would come from backend
   useEffect(() => {
@@ -229,7 +265,8 @@ export function TravelDashboard() {
                     </div>
                   </div>
 
-                  {(request.needs.carteSIM || request.needs.ordinateurVoyage) && (
+                  <div className="flex flex-wrap gap-4 items-center">
+                    {/* Needs badges */}
                     <div className="flex flex-wrap gap-2">
                       {request.needs.carteSIM && (
                         <Badge variant="outline">Carte SIM</Badge>
@@ -238,7 +275,83 @@ export function TravelDashboard() {
                         <Badge variant="outline">Ordinateur de voyage</Badge>
                       )}
                     </div>
-                  )}
+
+                    {/* Travelers popup */}
+                    {travelers[request.id] && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Voyageurs ({travelers[request.id].length})
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm">Voyageurs assignés</h4>
+                            {travelers[request.id].map((traveler) => (
+                              <div key={traveler.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={traveler.avatar} />
+                                  <AvatarFallback className="text-xs">
+                                    {traveler.name.split(' ').map(n => n[0]).join('')}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{traveler.name}</p>
+                                  <p className="text-xs text-muted-foreground">{traveler.role}</p>
+                                </div>
+                                <Badge 
+                                  variant={traveler.status === 'confirmed' ? 'default' : 
+                                          traveler.status === 'pending' ? 'secondary' : 'destructive'}
+                                  className="text-xs"
+                                >
+                                  {traveler.status === 'confirmed' ? 'Confirmé' : 
+                                   traveler.status === 'pending' ? 'En attente' : 'Décliné'}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+
+                    {/* Digital assets popup */}
+                    {digitalAssets[request.id] && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Laptop className="h-4 w-4" />
+                            Matériel ({digitalAssets[request.id].length})
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm">Actifs numériques assignés</h4>
+                            {digitalAssets[request.id].map((asset) => (
+                              <div key={asset.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                                <div className="flex-shrink-0">
+                                  <Laptop className="h-6 w-6 text-accent" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{asset.model}</p>
+                                  <p className="text-xs text-muted-foreground">SN: {asset.serialNumber}</p>
+                                  <p className="text-xs text-muted-foreground">Assigné à: {asset.assignedTo}</p>
+                                </div>
+                                <Badge 
+                                  variant={asset.status === 'assigned' ? 'default' : 
+                                          asset.status === 'available' ? 'secondary' : 'destructive'}
+                                  className="text-xs"
+                                >
+                                  {asset.status === 'assigned' ? 'Assigné' : 
+                                   asset.status === 'available' ? 'Disponible' : 'Maintenance'}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
 
                   {/* Comments section */}
                   {request.comments.length > 0 && (
