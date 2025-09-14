@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TravelTableView } from "./TravelTableView";
 import { 
   Plus, 
   Calendar, 
@@ -43,6 +43,20 @@ interface TravelBatch {
   endDate: Date;
   status: 'planning' | 'confirmed' | 'in-progress' | 'completed';
   budget: number;
+}
+
+// Interface compatible avec TravelRequest pour le tableau
+interface TravelRequestFromBatch {
+  id: string;
+  purpose: 'salon' | 'visite-client' | 'autres';
+  location: { quartier: string; ville: string; pays: string };
+  dates: { du: Date; au: Date };
+  arrival: { date: Date; time: string; preference: string; preciseTime: string };
+  departure: { date: Date; time: string; preference: string; preciseTime: string };
+  hotel: { proche: string };
+  needs: { carteSIM: boolean; ordinateurVoyage: boolean };
+  status: 'draft' | 'sent' | 'validated';
+  comments: any[];
 }
 
 export function HomePage() {
@@ -109,6 +123,42 @@ export function HomePage() {
       budget: 4100
     }
   ];
+
+  // Mock data for travelers compatible with the table
+  const travelersForTable: Record<string, Array<{id: string; name: string; role: string; status: 'confirmed' | 'pending' | 'declined'}>> = {
+    "1": [
+      { id: "t1", name: "Marie Dubois", role: "Chef de projet", status: "confirmed" },
+      { id: "t2", name: "Pierre Martin", role: "Développeur", status: "confirmed" }
+    ],
+    "2": [
+      { id: "t3", name: "Sophie Laurent", role: "Designer", status: "confirmed" }
+    ],
+    "3": [
+      { id: "t4", name: "Marie Dubois", role: "Chef de projet", status: "confirmed" }
+    ]
+  };
+
+  // Convert travel batches to travel requests format for the table
+  const convertBatchesToRequests = (): TravelRequestFromBatch[] => {
+    return travelBatches.map(batch => ({
+      id: batch.id,
+      purpose: batch.name.toLowerCase().includes('salon') ? 'salon' : 
+               batch.name.toLowerCase().includes('visite') ? 'visite-client' : 'autres',
+      location: { 
+        quartier: '', 
+        ville: batch.destination.split(',')[0].trim(), 
+        pays: batch.destination.split(',')[1]?.trim() || ''
+      },
+      dates: { du: batch.startDate, au: batch.endDate },
+      arrival: { date: batch.startDate, time: "09:00", preference: "matin", preciseTime: "08:30" },
+      departure: { date: batch.endDate, time: "17:00", preference: "soir", preciseTime: "18:00" },
+      hotel: { proche: "Centre-ville" },
+      needs: { carteSIM: Math.random() > 0.5, ordinateurVoyage: Math.random() > 0.5 },
+      status: batch.status === 'planning' ? 'draft' : 
+              batch.status === 'confirmed' ? 'sent' : 'validated',
+      comments: []
+    }));
+  };
 
   const stats = {
     totalRequests: 24,
@@ -305,48 +355,10 @@ export function HomePage() {
               </CardHeader>
               <CardContent>
                 {viewMode === 'table' ? (
-                  <div className="space-y-4">
-                    {travelBatches.map((batch) => (
-                      <div key={batch.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h3 className="font-semibold text-primary">{batch.name}</h3>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                              <MapPin className="h-4 w-4" />
-                              <span>{batch.destination}</span>
-                            </div>
-                          </div>
-                          {getStatusBadge(batch.status)}
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="h-4 w-4 text-accent" />
-                              <span>
-                                {format(batch.startDate, "dd/MM", { locale: fr })} - {format(batch.endDate, "dd/MM", { locale: fr })}
-                              </span>
-                            </div>
-                            
-                            <div className="flex -space-x-2">
-                              {batch.travelers.map((traveler) => (
-                                <Avatar key={traveler.id} className="h-8 w-8 border-2 border-background">
-                                  <AvatarFallback className="text-xs">
-                                    {traveler.name.split(' ').map(n => n[0]).join('')}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <p className="font-medium">{batch.budget.toLocaleString('fr-FR')}€</p>
-                            <p className="text-xs text-muted-foreground">{batch.travelers.length} voyageur{batch.travelers.length > 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <TravelTableView 
+                    requests={convertBatchesToRequests() as any} 
+                    travelers={travelersForTable} 
+                  />
                 ) : (
                   <div className="space-y-4">
                     <div className="grid grid-cols-7 gap-1 text-center text-sm font-medium text-muted-foreground mb-2">
