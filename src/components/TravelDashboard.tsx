@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TravelRequestForm, TravelRequest } from "./TravelRequestForm";
-import { Plus, Calendar, MapPin, Clock, MessageCircle, Edit, Trash2, Send, Users, Paperclip, CheckCircle, User, Laptop } from "lucide-react";
+import { TravelTableView } from "./TravelTableView";
+import { Plus, Calendar, MapPin, Clock, MessageCircle, Edit, Trash2, Send, Users, Paperclip, CheckCircle, User, Laptop, Table2, LayoutGrid } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,7 @@ export function TravelDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<TravelRequest | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   
   // Mock data for travelers and digital assets
   const [travelers] = useState<Record<string, Traveler[]>>({
@@ -156,13 +158,36 @@ export function TravelDashboard() {
             </p>
           </div>
           
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-accent shadow-glow hover:shadow-elegant transition-all duration-300">
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle demande
+          <div className="flex gap-3">
+            {/* View mode toggle */}
+            <div className="flex border rounded-lg bg-background">
+              <Button
+                variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className={viewMode === 'cards' ? 'bg-gradient-accent' : ''}
+              >
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Cartes
               </Button>
-            </DialogTrigger>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className={viewMode === 'table' ? 'bg-gradient-accent' : ''}
+              >
+                <Table2 className="mr-2 h-4 w-4" />
+                Tableau
+              </Button>
+            </div>
+
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-accent shadow-glow hover:shadow-elegant transition-all duration-300">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvelle demande
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Formulaire de demande de voyage</DialogTitle>
@@ -178,10 +203,13 @@ export function TravelDashboard() {
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
-        <div className="grid gap-6">
-          {requests.length === 0 ? (
+        <div className="space-y-6">
+          {viewMode === 'table' ? (
+            <TravelTableView requests={requests} travelers={travelers} />
+          ) : requests.length === 0 ? (
             <Card className="shadow-card border-0 text-center py-12">
               <CardContent>
                 <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -199,7 +227,8 @@ export function TravelDashboard() {
               </CardContent>
             </Card>
           ) : (
-            requests.map((request) => (
+            <div className="grid gap-6">
+            {requests.map((request) => (
               <Card key={request.id} className="shadow-card border-0 hover:shadow-elegant transition-all duration-300 animate-fade-in">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -422,7 +451,8 @@ export function TravelDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            ))
+            ))}
+            </div>
           )}
         </div>
       </div>
